@@ -35,6 +35,7 @@ function track(target, key) {
   }
 
   targetPropDeps.add(activeEffect);
+  activeEffect.deps.push(targetPropDeps);
 }
 
 function trigger(target, key) {
@@ -44,24 +45,41 @@ function trigger(target, key) {
   }
 
   const effects = targetDeps.get(key);
-  effects &&
-    effects.forEach((effect) => {
-      effect();
-    });
+  const effectsToRun = new Set(effects);
+  effectsToRun.forEach((fn) => fn());
 }
 
 let activeEffect;
 function effect(fn) {
-  activeEffect = fn;
-  fn();
+  // activeEffect = fn;
+  // fn();
+  const effectFn = () => {
+    cleanup(effectFn);
+    activeEffect = effectFn;
+    fn();
+  };
+
+  effectFn.deps = [];
+  effectFn();
 }
+
+function cleanup(effectFn) {
+  for (let index = 0; index < effectFn.deps.length; index++) {
+    const deps = effectFn.deps[index];
+    deps.delete(effectFn);
+  }
+  effectFn.deps.length = 0;
+}
+
+obj.ok = true;
 
 effect(() => {
   console.log("effect run");
-  app.innerText = obj.text;
+  app.innerText = obj.ok ? obj.text : "not";
 }); // 触发读取
 
 setTimeout(() => {
   // obj.text = "hello, mini-vue";
-  obj.notExist = "hello, mini-vue";
+  obj.ok = false;
+  obj.text = "hello, vue3"; // no clean up
 }, 1000);
