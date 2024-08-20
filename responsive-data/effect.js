@@ -46,7 +46,11 @@ function trigger(target, key) {
 
   const effects = targetDeps.get(key);
   const effectsToRun = new Set(effects);
-  effectsToRun.forEach((fn) => fn());
+  effectsToRun.forEach((fn) => {
+    if (fn !== activeEffect) {
+      fn();
+    }
+  });
 }
 
 let activeEffect;
@@ -54,7 +58,6 @@ let effectStack = [];
 function effect(fn) {
   // activeEffect = fn;
   // fn();
-  console.log("effect run");
   const effectFn = () => {
     cleanup(effectFn);
     activeEffect = effectFn;
@@ -91,14 +94,19 @@ setTimeout(() => {
 */
 
 /* 嵌套effect */
-let foo, bar;
-effect(function effectFn1() {
-  console.log("effectFn1 execute");
-  effect( function effectFn2()  {
-    console.log("effectFn2 execute");
-    bar = obj.bar;
-  });
-  foo = obj.foo;
-});
+// let foo, bar;
+// effect(function effectFn1() {
+//   console.log("effectFn1 execute");
+//   effect( function effectFn2()  {
+//     console.log("effectFn2 execute");
+//     bar = obj.bar;
+//   });
+//   foo = obj.foo;
+// });
+//
+// obj.foo = 2;
 
-obj.foo = 2;
+/* 避免无限递归 */
+effect(() => {
+  obj.foo++;
+})
