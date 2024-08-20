@@ -45,17 +45,19 @@ function trigger(target, key) {
   }
 
   const effects = targetDeps.get(key);
-  const effectsToRun = new Set(effects);
-  effectsToRun.forEach((fn) => {
-    if (fn !== activeEffect) {
-      fn();
+  const effectsToRun = new Set([...effects].filter(effect => effect !== activeEffect));
+  effectsToRun.forEach((effectFn) => {
+    if (effectFn.options.scheduler) {
+      effectFn.options.scheduler(effectFn);
+    } else {
+      effectFn();
     }
   });
 }
 
 let activeEffect;
 let effectStack = [];
-function effect(fn) {
+function effect(fn, options = {}) {
   // activeEffect = fn;
   // fn();
   const effectFn = () => {
@@ -68,6 +70,7 @@ function effect(fn) {
   };
 
   effectFn.deps = [];
+  effectFn.options = options;
   effectFn();
 }
 
@@ -107,6 +110,17 @@ setTimeout(() => {
 // obj.foo = 2;
 
 /* 避免无限递归 */
+// effect(() => {
+//   obj.foo++;
+// })
+
+/* 支持调度 */
 effect(() => {
-  obj.foo++;
+  console.log(obj.foo);
+}, {
+    scheduler: (fn) => {
+      setTimeout(fn)
+    }
 })
+obj.foo++;
+console.log('end');
