@@ -3,7 +3,7 @@ const app = document.getElementById("app");
 
 const bucket = new WeakMap();
 
-const data = { text: "hello, world" };
+const data = { text: "hello, world", foo: 0, bar: 0 };
 
 const obj = new Proxy(data, {
   get(target, key) {
@@ -50,13 +50,18 @@ function trigger(target, key) {
 }
 
 let activeEffect;
+let effectStack = [];
 function effect(fn) {
   // activeEffect = fn;
   // fn();
+  console.log("effect run");
   const effectFn = () => {
     cleanup(effectFn);
     activeEffect = effectFn;
+    effectStack.push(effectFn);
     fn();
+    effectStack.pop();
+    activeEffect = effectStack[effectStack.length - 1];
   };
 
   effectFn.deps = [];
@@ -71,15 +76,29 @@ function cleanup(effectFn) {
   effectFn.deps.length = 0;
 }
 
+/* 
+cleanup和分支切换
 obj.ok = true;
-
 effect(() => {
   console.log("effect run");
   app.innerText = obj.ok ? obj.text : "not";
 }); // 触发读取
-
 setTimeout(() => {
   // obj.text = "hello, mini-vue";
   obj.ok = false;
   obj.text = "hello, vue3"; // no clean up
 }, 1000);
+*/
+
+/* 嵌套effect */
+let foo, bar;
+effect(function effectFn1() {
+  console.log("effectFn1 execute");
+  effect( function effectFn2()  {
+    console.log("effectFn2 execute");
+    bar = obj.bar;
+  });
+  foo = obj.foo;
+});
+
+obj.foo = 2;
