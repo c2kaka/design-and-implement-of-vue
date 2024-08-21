@@ -1,9 +1,8 @@
 const app = document.getElementById("app");
-// app.innerText = data.text;
 
 const bucket = new WeakMap();
 
-const data = { text: "hello, world", foo: 0, bar: 0 };
+const data = {text: "hello, world", foo: 0, bar: 0};
 
 const obj = new Proxy(data, {
   get(target, key) {
@@ -57,6 +56,7 @@ function trigger(target, key) {
 
 let activeEffect;
 let effectStack = [];
+
 function effect(fn, options = {}) {
   // activeEffect = fn;
   // fn();
@@ -115,12 +115,42 @@ setTimeout(() => {
 // })
 
 /* 支持调度 */
+// effect(() => {
+//   console.log(obj.foo);
+// }, {
+//     scheduler: (fn) => {
+//       setTimeout(fn)
+//     }
+// })
+// obj.foo++;
+// console.log('end');
+
+/** 使用任务队列控制 effect 函数的执行次数 **/
+const jobQueue = new Set();
+let isFlushing = false;
+const p = Promise.resolve();
+
+function flushJobs() {
+  if (isFlushing) {
+    return;
+  }
+
+  isFlushing = true;
+  p.then(() => {
+    jobQueue.forEach(job => job());
+  }).finally(() => {
+    isFlushing = false;
+  })
+}
+
 effect(() => {
   console.log(obj.foo);
 }, {
-    scheduler: (fn) => {
-      setTimeout(fn)
-    }
+  scheduler(fn) {
+    jobQueue.add(fn);
+    flushJobs();
+  }
 })
+
 obj.foo++;
-console.log('end');
+obj.foo++;
